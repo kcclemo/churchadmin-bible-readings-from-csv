@@ -10,25 +10,25 @@
     if (!empty($_GET['build'])) {
          // require wp-load.php to use built-in WordPress functions
         require_once("../../wp-load.php");
+
         // Authorization token needed to access the API
         $auth_token = 'Authorization: Token {{ YOUR_KEY }}';
+
         // Import raw plan data from csv.
         $rows = array_map('str_getcsv', file('reading-plan-input.csv'));
         $header = array_shift($rows);
         $plan = [];
-        $output_headers = ['title', 'date', 'content'];
 
         // Set up URL pieces that will need to be sent to the API.
         $html_base_url = 'https://api.esv.org/v3/passage/html/?q=';
+
+        // Optional parameters to customize the returned output.: https://api.esv.org/docs/passage-html/
         $html_options = '&include-passage-references=true&include-footnotes=false&inline-styles=true&wrapping-div=true&div-classes=ns-reading&include-book-titles=true&include-audio-link=false';
         $audio_base_url = 'https://api.esv.org/v3/passage/audio/?q=';
 
         foreach ($rows as $row) {
             $plan[] = array_combine($header, $row);
         }
-
-        $csv = fopen('reading-plan-output.csv', 'w');
-        fputcsv($csv, $output_headers);
 
         foreach ($plan as $reading) {
             // WordPress Post Information
@@ -55,7 +55,7 @@
                 </style>
                 <audio src="' . $audio_url . '" controls preload="auto" style="width: 100%;"></audio>
                 <br>
-                <a href="https://chat.whatsapp.com/" target="_blank" rel="noopener" style="margin: 2em 0;">Discuss today\'s reading.</a>
+                <a href="" target="_blank" rel="noopener" style="margin: 2em 0;">Discuss today\'s reading.</a>
                 <br>
             ';
 
@@ -81,15 +81,13 @@
                 $content .= $passage;
             }
 
-            $output = [$title, $date, $content];
             echo $content;
-
-            fputcsv($csv, $output);
 
             // Download audio file
             $audio = curl_init($audio_api_url);
 
             curl_setopt($audio, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($audio, CURLOPT_CUSTOMREQUEST, 'GET');
             curl_setopt($audio, CURLOPT_HTTPHEADER, [$auth_token]);
             curl_setopt($audio, CURLOPT_FOLLOWLOCATION, true);
 
@@ -97,7 +95,8 @@
 
             curl_close($audio);
 
-            file_put_contents($audio_url . strtolower(date('F-d-Y', strtotime($date))) . '.mp3', $result);
+            // This is where the audio files will be stored on the server.
+            file_put_contents('../' . strtolower(date('F-d-Y', strtotime($date))) . '.mp3', $result);
 
             $new_post = [
                 'post_title' => $title,
@@ -113,9 +112,10 @@
             wp_insert_post($new_post);
         }
 
-        fclose($csv);
         echo '<br>==========================<br>';
         echo 'Finished.';
+        echo '<br>==========================<br>';
+        echo '<a href="/bible/update-plan/">Done</a>';
     } else {
 ?>
 </head>
