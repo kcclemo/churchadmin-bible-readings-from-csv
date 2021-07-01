@@ -21,3 +21,6 @@ node_modules/
 *.log
 *.sql
 *.sqlite
+
+# ignore csv input file because it's intended to change frequently.
+reading-plan-input.csv
